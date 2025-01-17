@@ -1,5 +1,5 @@
 // src/services/api.js
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'; // Use env variable for API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api'; // Use env variable for API URL
 
 const defaultHeaders = {
   'Content-Type': 'application/json',
