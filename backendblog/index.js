@@ -32,6 +32,12 @@ app.use(bodyParser.json());
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.use(express.static(path.join(__dirname, 'frontend/build')));
+
+// Handle all other requests by serving the React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
+});
 
 
 // Define routes
