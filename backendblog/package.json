@@ -46,7 +46,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd ../myblog && npm install && npm run build",
      "render-postbuild": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
