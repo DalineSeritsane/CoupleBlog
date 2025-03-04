@@ -15,8 +15,8 @@ const app = express();
 const PORT = process.env.PORT || 5000; // Fallback if .env is missing
 
 
-
-app.use(cors());
+//Allows credentials (like cookies or auth tokens) to be included in cross-origin requests
+app.use(cors({origin:"https://myblogappforcouples.vercel.app/ ", credentials :true}));
 
 // Middleware
 app.use(bodyParser.json());
