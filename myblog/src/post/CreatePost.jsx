@@ -3,49 +3,47 @@ import axios from 'axios';
 import './Createpost.css';
 
 const CreatePost = () => {
-    const [title, setTitle] = useState('');
-    const [author, setAuthor] = useState('');
-    const [date, setDate] = useState('');
-    const [shortDescription, setShortDescription] = useState('');
-    const [content, setContent] = useState('');
-    const [image, setImage] = useState(null);
+    const [formData, setFormData] = useState({
+        title: '',
+        author: '',
+        date: '',
+        shortDescription: '',
+        content: '',
+        image: null,
+    });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
 
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file && !file.type.startsWith("image/")) {
+            setError('Only image files are allowed');
+            return;
+        }
+        setFormData((prev) => ({ ...prev, image: file }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const formData = new FormData();
-
-        formData.append('title', title);
-        formData.append('author', author);
-        formData.append('date', date);
-        formData.append('shortDescription', shortDescription);
-        formData.append('content', content);
-        if (image) {
-            if (!image.type.startsWith("image/")) {
-                setError('Only image files are allowed');
-                return;
-            }
-            formData.append('image', image);
-        }
-        formData.append('comments', JSON.stringify([]));
+        const blogData = new FormData();
+        Object.entries(formData).forEach(([key, value]) => {
+            if (value) blogData.append(key, value);
+        });
+        blogData.append('comments', JSON.stringify([]));
 
         try {
-            const response = await axios.post('http://localhost:5000/api/blogs', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            await axios.post('http://localhost:8080/api/blogs', blogData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
             setMessage('Blog created successfully!');
             setError('');
-            // Clear the form fields
-            setTitle('');
-            setAuthor('');
-            setDate('');
-            setShortDescription('');
-            setContent('');
-            setImage(null);
-        } catch (err) {
+            setFormData({ title: '', author: '', date: '', shortDescription: '', content: '', image: null });
+        } catch {
             setError('Error creating blog. Please try again.');
             setMessage('');
         }
@@ -57,58 +55,34 @@ const CreatePost = () => {
             {message && <div className="alert alert-success">{message}</div>}
             {error && <div className="alert alert-danger">{error}</div>}
             <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
-                    />
-                </div>
-                <div className="mb-3">
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Author"
-                        value={author}
-                        onChange={(e) => setAuthor(e.target.value)}
-                        required
-                    />
-                </div>
+                {['title', 'author', 'shortDescription', 'content'].map((field) => (
+                    <div key={field} className="mb-3">
+                        <input
+                            type={field === 'content' || field === 'shortDescription' ? 'textarea' : 'text'}
+                            className="form-control"
+                            name={field}
+                            placeholder={field.replace(/([A-Z])/g, ' $1')}
+                            value={formData[field]}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                ))}
                 <div className="mb-3">
                     <input
                         type="date"
                         className="form-control"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
+                        name="date"
+                        value={formData.date}
+                        onChange={handleChange}
                     />
-                </div>
-                <div className="mb-3">
-                    <textarea
-                        className="form-control"
-                        placeholder="Short Description"
-                        value={shortDescription}
-                        onChange={(e) => setShortDescription(e.target.value)}
-                        required
-                    ></textarea>
-                </div>
-                <div className="mb-3">
-                    <textarea
-                        className="form-control"
-                        placeholder="Content"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        required
-                    ></textarea>
                 </div>
                 <div className="mb-3">
                     <input
                         type="file"
                         className="form-control"
                         accept="image/*"
-                        onChange={(e) => setImage(e.target.files[0])}
+                        onChange={handleFileChange}
                     />
                 </div>
                 <button type="submit" className="btn btn-primary w-100">Create Blog Post</button>

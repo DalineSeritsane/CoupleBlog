@@ -1,68 +1,62 @@
-const express = require("express");
-const fs = require('fs');
-const bcrypt = require('bcryptjs');
-const path = require('path');
-const jwt = require('jsonwebtoken');
-const router = express.Router(); 
+const express = require('express');
+const router = express.Router();
+const pool = require('../db');
+const multer = require('multer');
+const bcrypt = require('bcrypt');
 
-const usersFilePath = path.join(__dirname, '../data/users.json'); // Path for users data storage
-
-// Helper function to read users from the file
-const readUser = () => {
-    if (fs.existsSync(usersFilePath)) {
-        const data = fs.readFileSync(usersFilePath);
-        return JSON.parse(data);
+// Configure multer for file uploads
+const upload = multer({
+  dest: './uploads/', // Ensure this directory exists
+  limits: { fileSize: 1000000 }, // 1MB limit
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'), false);
     }
-    return [];
-};
-
-// Register new user
-router.post('/register', (req, res) => {
-    const { username, password, email } = req.body;
-    console.log("Received data:", req.body);
-    
-    const users = readUser(); // Read existing users from the file
-
-    // Check if the user already exists
-    const existingUser = users.find(user => user.username === username);
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
-
-    // Hash the password and create new user
-    const hashedPassword = bcrypt.hashSync(password, 8);
-    const newUser = { id: users.length + 1, username, email, password: hashedPassword };
-    users.push(newUser);
-
-    try {
-        // Save the updated users array to file
-        fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
-        res.status(201).json({ message: 'User registered successfully' });
-    } catch (error) {
-        console.log("Error saving user:", error);
-        res.status(500).json({ message: 'Error saving user. Try again' });
-    }
+    cb(null, true);
+  }
 });
 
-// Login user
-router.post("/login", (req, res) => {
-    const { username, password } = req.body;
-    console.log("Login attempt:", req.body);
+// POST /api/users/register - Register a new user
+router.post('/register', upload.single('image'), async (req, res) => {
+  const { name, email, password } = req.body;
+  const image = req.file ? req.file.filename : null;
 
-    const users = readUser(); // Use readUser() to get users data
+  // Validation: Check if all required fields are provided
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: 'Name, email, and password are required' });
+  }
 
-    // Find the user with matching username
-    const user = users.find(user => user.username === username);
-    if (!user || !bcrypt.compareSync(password, user.password)) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+  try {
+    // Check if the email is already taken
+    const [existingUser] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (existingUser.length > 0) {
+      return res.status(400).json({ message: 'Email is already registered' });
     }
 
-    // Generate token and send success response if credentials are correct
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '2h' });
-    res.json({ auth: true, token, message: 'Login successful' });
-});
+    // Hash the password before storing it
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-// Logout user 
-router.post('/logout', (req, res) => {
-    res.json({ auth: false, token: null });
+    // Insert the new user into the database
+    const [result] = await pool.query(
+      'INSERT INTO users (name, email, password, image) VALUES (?, ?, ?, ?)',
+      [name, email, hashedPassword, image]
+    );
+
+    // Send a response back to the client
+    res.status(201).json({
+      message: 'User registered successfully',
+      userId: result.insertId,
+      name,
+      email,
+      image
+    });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ message: 'This email is already taken' });
+    }
+    res.status(500).json({ message: 'Database error, please try again later' });
+  }
 });
 
 module.exports = router;

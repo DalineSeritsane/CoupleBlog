@@ -1,63 +1,31 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const fs = require('fs');
 const cors = require('cors');
-
-const userRoutes = require('./backendBlog/routes/users');
-
-const blogsRoutes = require('./backendBlog/routes/blogs');
-
 const path = require('path');
-
+const mysql = requir('my')
+const userRoutes = require('../backendblog/backendBlog/routes/users');  //path of users
+const blogsRoutes = require('../backendblog/backendBlog/routes/blogs');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Fallback if .env is missing
+const PORT = process.env.PORT ; 
 
-
-//Allows credentials (like cookies or auth tokens) to be included in cross-origin requests
-app.use(cors({origin:"https://myblogappforcouples.vercel.app/ ", credentials :true}));
+// CORS configuration to allow frontend requests
+app.use(cors({
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Middleware
-app.use(bodyParser.json());
+app.use(express.json()); // Parse JSON bodies
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded images
 
-// helper function to read JSON file 
-const readBlogs = () => {
-  const blogsData = fs.readFileSync('blogs.json');
-  return JSON.parse(blogsData);
-};
+// Routes
+app.use('/api/users', userRoutes); 
+app.use('/api/blogs', blogsRoutes); //for '/api/blogs' endpoints
 
-//function to write JSON file
-const writeBlogs = (data) => {
-  const postsData = fs.readFileSync('blogs.json', JSON.stringify(data, null,2));
-};
-
-
-// Serve static files from the uploads folder
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-app.use(express.static(path.join(__dirname, 'myblog/build')));
-
-// Handle all other requests by serving the React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'myblog/build', 'index.html'));
-});
-
-
-// Define routes
-
-app.use('/api/users', userRoutes);
-
-app.use('/api/blogs', blogsRoutes);
-
-
-
+// Start server
 app.listen(PORT, () => {
-
-    console.log(`Server is running on http://localhost:${PORT}`);
-
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-
-
