@@ -1,57 +1,88 @@
-// src/services/api.js
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api'; // Use env variable for API URL
+const API_URL = "http://localhost:7412/posts";
 
 const defaultHeaders = {
-  'Content-Type': 'application/json',
+  "Content-Type": "application/json",
 };
 
-// Helper function for error messages
+// Handle API errors
 const handleErrors = async (response) => {
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Error: ${response.status} - ${errorText}`);
   }
+  return response.json();
 };
 
 // Fetch all blog posts
-export const fetchBlogs = async () => {
-  const response = await fetch(`${API_URL}/blogs`);
-  await handleErrors(response);
-  return await response.json();
+export const fetchPosts = async () => {
+  try {
+    const response = await fetch(API_URL);
+    return await handleErrors(response);
+  } catch (error) {
+    console.error("Failed to fetch posts:", error);
+  }
 };
 
 // Create a new blog post
-export const createBlog = async (blogData) => {
-  const response = await fetch(`${API_URL}/blogs`, {
-    method: 'POST',
-    headers: defaultHeaders,
-    body: JSON.stringify(blogData),
-  });
-  await handleErrors(response);
-  return await response.json();
+export const createPost = async (postData) => {
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: defaultHeaders,
+      body: JSON.stringify(postData),
+    });
+    return await handleErrors(response);
+  } catch (error) {
+    console.error("Failed to create post:", error);
+  }
 };
 
-// Fetch a single blog post by ID
-export const fetchBlogById = async (id) => {
-  const response = await fetch(`${API_URL}/blogs/${id}`);
-  await handleErrors(response);
-  return await response.json();
+// Fetch a single post by ID
+export const fetchPostById = async (postId) => {
+  try {
+    const response = await fetch(`${API_URL}/${postId}`);
+    return await handleErrors(response);
+  } catch (error) {
+    console.error("Failed to fetch post:", error);
+  }
 };
 
-// Fetch comments for a specific blog post
-export const fetchComments = async (blogId) => {
-  const response = await fetch(`${API_URL}/blogs/${blogId}/comments`);
-  await handleErrors(response);
-  return await response.json();
+// Update a blog post
+export const updatePost = async (postId, updatedData) => {
+  try {
+    const response = await fetch(`${API_URL}/${postId}`, {
+      method: "PUT",
+      headers: defaultHeaders,
+      body: JSON.stringify(updatedData),
+    });
+    return await handleErrors(response);
+  } catch (error) {
+    console.error("Failed to update post:", error);
+  }
 };
 
-// Post a new comment
-export const postComment = async (blogId, commentData) => {
-  const response = await fetch(`${API_URL}/blogs/${blogId}/comments`, {
-    method: 'POST',
-    headers: defaultHeaders,
-    body: JSON.stringify(commentData),
-  });
-  await handleErrors(response);
-  return await response.json();
+// Delete a blog post
+export const deletePost = async (postId) => {
+  try {
+    const response = await fetch(`${API_URL}/${postId}`, {
+      method: "DELETE",
+    });
+    return await handleErrors(response);
+  } catch (error) {
+    console.error("Failed to delete post:", error);
+  }
+};
+
+// Post a comment to a blog post
+export const postComment = async (postId, commentData) => {
+  try {
+    const response = await fetch(`${API_URL}/${postId}/comments`, {
+      method: "POST",
+      headers: defaultHeaders,
+      body: JSON.stringify(commentData),
+    });
+    return await handleErrors(response);
+  } catch (error) {
+    console.error("Failed to post comment:", error);
+  }
 };

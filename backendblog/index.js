@@ -20,29 +20,48 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve u
 const db = mysql.createConnection({
   host:process.env.DB_HOST,
   user:process.env.DB_USER,
+  port:process.env.DB_PORT,
   password:process.env.DB_PASSWORD,
   database:process.env.DB_NAME
 })
-db.connect(function(err){
+
+//Connect to database
+db.connect((err) => {
   if (err) throw err;
   console.log("Connected!");
 });
   
-app.get("/blogs", (req, res) => {
-  const sql = "SELECT * FROM blogs";
+
+//Get all posts
+app.get("/posts", (req, res) => {
+  const sql = "SELECT * FROM posts";
   db.query(sql, (err, data) => {
     if (err) return res.json(err);
     return res.json(data);
   });
 });
 
+//Get a single post by ID
+app.get("/posts/:id",(req, res) =>{
+  const { id } = req.params;
+  db.query("SELECT * FROM posts WHERE id = ?", [id], (err, results) => {
+    if (err) {
+      console.error("Error fetching post:", err);
+      return res.status(500).json({ message: "Error fetching post" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+    res.json(results[0]);
+  });
+});
 
 
 //POST blogs
-app.post("/blogs", (req, res) => {
-  const sql = "INSERT INTO blogs (`name`, `content`, `comment`) VALUES (?)";
+app.post("/posts", (req, res) => {
+  const sql = "INSERT INTO blogs (`title`, `content`, `comment`) VALUES (?)";
   const blogs = [
-    req.body.name,
+    req.body.title,
     req.body.content,
     req.body.comment,
   ];
@@ -51,15 +70,15 @@ app.post("/blogs", (req, res) => {
     if (err) return res.json({ error: err });
     return res.json({ 
       id: data.insertId,
-      name:req.body.name,
+      title:req.body.title,
       content: req.body.content,
       comment:req.body.comment,
       message: "Blog added successfully!", result });
   });
 });
- //Edit data 
+ //Edit data for blog[']
 
-app.put("/blogs/:id", (req, res) => {
+app.put("/posts/:id", (req, res) => {
   const id = req.params.id;
   const { title, content } = req.body; // Extract title and content from request body
 
@@ -81,7 +100,11 @@ app.put("/blogs/:id", (req, res) => {
 });
 
 
-
+//DELETE blog
+app.delete("/posts/:id", (req, res)=> {
+  const id= req.params.id;
+  const sql= "DELETE FROM "
+})
 
 // Routes
 app.use('/api/users'); 
