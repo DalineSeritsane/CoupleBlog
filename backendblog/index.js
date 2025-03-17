@@ -1,48 +1,47 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const mysql = require("mysql");
-const userRoutes = require('../backendblog/backendBlog/routes/users');  //path of users
-const blogsRoutes = require('../backendblog/backendBlog/routes/blogs');
-require('dotenv').config();
+const express = require("express");
+const mysql = require("mysql2");
+const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT ; 
+const PORT = process.env.PORT || 7412;
 
 app.use(cors());
 app.use(express.json());
 
-// Middleware
-app.use(express.json()); // Parse JSON bodies
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded images
-
-//Connect to db
+// Create a connection to the database
 const db = mysql.createConnection({
-  host:process.env.DB_HOST,
-  user:process.env.DB_USER,
-  port:process.env.DB_PORT,
-  password:process.env.DB_PASSWORD,
-  database:process.env.DB_NAME
-})
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  port: process.env.DB_PORT,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 
-//Connect to database
-db.connect((err) => {
-  if (err) throw err;
-  console.log("Connected!");
 });
-  
 
-//Get all posts
+
+// Connect to the database
+db.connect((err) => {
+  if (err) {
+    console.error("Error connecting to the database:", err);
+    return;
+  }
+  console.log("Connected to the MySQL database");
+});
+
+// Get all posts
 app.get("/posts", (req, res) => {
-  const sql = "SELECT * FROM posts";
-  db.query(sql, (err, data) => {
-    if (err) return res.json(err);
-    return res.json(data);
+  db.query("SELECT * FROM posts", (err, results) => {
+    if (err) {
+      console.error("Error fetching posts:", err);
+      return res.status(500).json({ message: "Error fetching posts" });
+    }
+    res.json(results);
   });
 });
 
-//Get a single post by ID
-app.get("/posts/:id",(req, res) =>{
+// Get a single post by ID
+app.get("/posts/:id", (req, res) => {
   const { id } = req.params;
   db.query("SELECT * FROM posts WHERE id = ?", [id], (err, results) => {
     if (err) {
@@ -56,61 +55,52 @@ app.get("/posts/:id",(req, res) =>{
   });
 });
 
-
-//POST blogs
+// Create a new post
 app.post("/posts", (req, res) => {
-  const sql = "INSERT INTO blogs (`title`, `content`, `comment`) VALUES (?)";
-  const blogs = [
-    req.body.title,
-    req.body.content,
-    req.body.comment,
-  ];
-
-  db.query(sql, [blogs], (err, result) => {
-    if (err) return res.json({ error: err });
-    return res.json({ 
-      id: data.insertId,
-      title:req.body.title,
-      content: req.body.content,
-      comment:req.body.comment,
-      message: "Blog added successfully!", result });
-  });
-});
- //Edit data for blog[']
-
-app.put("/posts/:id", (req, res) => {
-  const id = req.params.id;
-  const { title, content } = req.body; // Extract title and content from request body
-
-  if (!title || !content) {
-    return res.status(400).json({ error: "Title and content are required" });
+  const { title, content, image } = req.body;
+  if (!title || !content || !image) {
+    return res.status(400).json({ message: "All fields are required" });
   }
-
-  const sql = "UPDATE blogs SET title = ?, content = ? WHERE id = ?";
-  db.query(sql, [title, content, id], (err, result) => {
+  const post = { title, content, image };
+  db.query("INSERT INTO posts SET ?", post, (err, results) => {
     if (err) {
-      console.error("Error updating blog:", err);
-      return res.status(500).json({ error: "Database error" });
+      console.error("Error creating post:", err);
+      return res.status(500).json({ message: "Error creating post" });
     }
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Blog not found" });
-    }
-    res.json({ message: "Blog updated successfully", updatedId: id });
+    res.status(201).json({ id: results.insertId, ...post });
   });
 });
 
+// Add a comment to a post
+app.post("/posts/:id/comments", (req, res) => {
+  const { id } = req.params;
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ message: "Comment text is required" });
+  }
+  const comment = { post_id: id, text };
+  db.query("INSERT INTO comments SET ?", comment, (err, results) => {
+    if (err) {
+      console.error("Error adding comment:", err);
+      return res.status(500).json({ message: "Error adding comment" });
+    }
+    res.status(201).json({ id: results.insertId, ...comment });
+  });
+});
 
-//DELETE blog
-app.delete("/posts/:id", (req, res)=> {
-  const id= req.params.id;
-  const sql= "DELETE FROM "
-})
+// Delete all comments from a post
+app.delete("/posts/:id/comments", (req, res) => {
+  const { id } = req.params;
+  db.query("DELETE FROM comments WHERE post_id = ?", [id], (err, results) => {
+    if (err) {
+      console.error("Error deleting comments:", err);
+      return res.status(500).json({ message: "Error deleting comments" });
+    }
+    res.status(200).json({ message: "All comments deleted" });
+  });
+});
 
-// Routes
-app.use('/api/users'); 
-app.use('/api/blogs'); //for '/api/blogs' endpoints
-
-// Start server
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
