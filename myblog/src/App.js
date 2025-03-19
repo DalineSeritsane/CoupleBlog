@@ -31,7 +31,7 @@ const App =() => {
           <Route path="/contact" element={ <Contact />} />
           <Route path="/write" element={ <Write />} />
           <Route path="/setting" element={user ? <Setting /> : <Register/>} ></Route>
-          <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/post/:postid" element={<PostDetail />} />
           <Route path="/single" element={ <Single />} />
           <Route path="/create-post" element={ <CreatePost />} />
           <Route path="/post" element={ <ProtectedRoute><Post /></ProtectedRoute>} />

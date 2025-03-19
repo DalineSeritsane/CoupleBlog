@@ -37,7 +37,7 @@ const CreatePost = () => {
         blogData.append('comments', JSON.stringify([]));
 
         try {
-            await axios.post('http://localhost:8080/api/blogs', blogData, {
+            await axios.post('http://localhost:7412/api/posts', blogData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setMessage('Blog created successfully!');

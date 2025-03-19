@@ -1,62 +1,64 @@
 const express = require('express');
-const router = express.Router();
-const pool = require('../db');
-const multer = require('multer');
+const db = require('../db');
+const fs = require('fs');
+const path = require('path');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
-// Configure multer for file uploads
-const upload = multer({
-  dest: './uploads/', // Ensure this directory exists
-  limits: { fileSize: 1000000 }, // 1MB limit
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Only image files are allowed'), false);
-    }
-    cb(null, true);
-  }
-});
+const router = express.Router(); 
+
+// Load user data from JSON file
+// const usersFilePath = path.join(__dirname, '../data/users.json');
+
+// // Helper function to read users from the file
+// const readUsers = () => {
+//   const data = fs.readFileSync(usersFilePath);
+//   return JSON.parse(data);
+// };
 
 // POST /api/users/register - Register a new user
-router.post('/register', upload.single('image'), async (req, res) => {
-  const { name, email, password } = req.body;
-  const image = req.file ? req.file.filename : null;
+router.post('/register', async (req, res) => {
+  const { username, email, password } = req.body;
 
-  // Validation: Check if all required fields are provided
-  if (!name || !email || !password) {
+  if (!username || !email || !password) {
     return res.status(400).json({ message: 'Name, email, and password are required' });
   }
 
   try {
-    // Check if the email is already taken
-    const [existingUser] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [existingUser] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
     if (existingUser.length > 0) {
-      return res.status(400).json({ message: 'Email is already registered' });
+      return res.status(400).json({ message: 'User is already registered' });
     }
 
-    // Hash the password before storing it
     const hashedPassword = await bcrypt.hash(password, 10);
+    await db.query('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', 
+      [username, email, hashedPassword]);
 
-    // Insert the new user into the database
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, password, image) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, image]
-    );
-
-    // Send a response back to the client
-    res.status(201).json({
-      message: 'User registered successfully',
-      userId: result.insertId,
-      name,
-      email,
-      image
-    });
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
     console.error('Error registering user:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ message: 'This email is already taken' });
-    }
-    res.status(500).json({ message: 'Database error, please try again later' });
+    return res.status(500).json({ message: 'Error saving user, please try again later' });
   }
 });
+
+// POST /api/users/login - Login a user
+router.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const [user] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
+
+    if (!user.length || !bcrypt.compareSync(password, user[0].password)) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: user[0].id }, '2233', { expiresIn: '24h' });
+    res.json({ auth: true, token, message: 'Login successful' });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: 'Login error' });
+  }
+});
+
 
 module.exports = router;
