@@ -1,20 +1,9 @@
 const express = require('express');
 const db = require('../db');
-const fs = require('fs');
-const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 const router = express.Router(); 
-
-// Load user data from JSON file
-// const usersFilePath = path.join(__dirname, '../data/users.json');
-
-// // Helper function to read users from the file
-// const readUsers = () => {
-//   const data = fs.readFileSync(usersFilePath);
-//   return JSON.parse(data);
-// };
 
 // POST /api/users/register - Register a new user
 router.post('/register', async (req, res) => {
@@ -52,13 +41,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user[0].id }, '2233', { expiresIn: '24h' });
+    const token = jwt.sign({ id: user[0].id }, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.json({ auth: true, token, message: 'Login successful' });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: 'Login error' });
   }
 });
-
 
 module.exports = router;
