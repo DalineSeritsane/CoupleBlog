@@ -50,7 +50,7 @@ const upload = multer({
 }).single('image');
 
 // GET /api/blogs - Fetch all blog posts
-router.get('/', async (req, res) => {
+router.get('/posts', async (req, res) => {
   try {
     const posts = await dbQuery('SELECT * FROM posts ORDER BY date DESC');
     res.json(posts);

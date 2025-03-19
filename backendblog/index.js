@@ -24,8 +24,8 @@ app.use(bodyParser.json());  // Parse incoming JSON requests
 app.use('/uploads', express.static('uploads'));
 
 // Routes for user and blog handling
-app.use('/api/users', userRoutes);
-app.use('/api/blogs', blogRoutes);
+app.use('/api', userRoutes);
+app.use('/api', blogRoutes);
 
 // Start the server
 app.listen(PORT, () => {

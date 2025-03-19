@@ -38,7 +38,7 @@ const CreatePost = () => {
 
         try {
             await axios.post('http://localhost:7412/api/posts', blogData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+                headers: { 'Content-Type': 'applicationn/json' },
             });
             setMessage('Blog created successfully!');
             setError('');
